@@ -1,6 +1,5 @@
 import { SkinAnalysis, WeeklyReport } from '../types';
 
-const skinConditions = ['干性', '油性', '混合性', '敏感性', '中性'];
 const recommendations = [
   '建议增加保湿产品的使用频率',
   '注意防晒，避免紫外线伤害',
@@ -31,7 +30,7 @@ const generateWeeklyTrend = (): number[] => {
 };
 
 export const mockSkinAnalysisAPI = {
-  analyzeSkin: async (imageUri: string): Promise<SkinAnalysis> => {
+  analyzeSkin: async (_imageUri: string): Promise<SkinAnalysis> => {
     // Simulate API delay
     await new Promise(resolve => setTimeout(resolve, 2000));
     
@@ -64,7 +63,7 @@ export const mockSkinAnalysisAPI = {
     };
   },
 
-  mockLogin: async (provider: string): Promise<{ success: boolean; user: any }> => {
+  mockLogin: async (_provider: string): Promise<{ success: boolean; user: any }> => {
     // Simulate API delay
     await new Promise(resolve => setTimeout(resolve, 1000));
     

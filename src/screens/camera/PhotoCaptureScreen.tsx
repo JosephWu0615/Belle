@@ -7,6 +7,8 @@ import {
   SafeAreaView,
   Alert,
   ActivityIndicator,
+  Switch,
+  Dimensions,
 } from 'react-native';
 import Icon from 'react-native-vector-icons/MaterialIcons';
 import { useNavigation } from '@react-navigation/native';
@@ -14,6 +16,9 @@ import { PhotoStorage } from '../../utils/PhotoStorage';
 import { usePhotoStore } from '../../store/photoStore';
 import { useAchievementStore } from '../../store/achievementStore';
 import { format } from 'date-fns';
+import { theme } from '../../theme';
+
+const { width: screenWidth, height: screenHeight } = Dimensions.get('window');
 
 // Mock voice guidance messages
 const voiceMessages = {
@@ -31,7 +36,9 @@ export const PhotoCaptureScreen = () => {
   const [lightQuality, setLightQuality] = useState<'poor' | 'good' | 'excellent'>('good');
   const [isCapturing, setIsCapturing] = useState(false);
   const [faceDetected, setFaceDetected] = useState(false);
-  const [voiceMessage, setVoiceMessage] = useState(voiceMessages.positioning);
+  const [, setVoiceMessage] = useState(voiceMessages.positioning);
+  const [vocalGuidance, setVocalGuidance] = useState(true);
+  const [volumeLevel] = useState(60);
 
   // Simulate face detection
   useEffect(() => {
@@ -50,15 +57,17 @@ export const PhotoCaptureScreen = () => {
       const randomQuality = qualities[Math.floor(Math.random() * qualities.length)];
       setLightQuality(randomQuality);
       
-      if (randomQuality === 'poor') {
-        setVoiceMessage(voiceMessages.lowLight);
-      } else if (faceDetected) {
-        setVoiceMessage(voiceMessages.goodLight);
+      if (vocalGuidance) {
+        if (randomQuality === 'poor') {
+          setVoiceMessage(voiceMessages.lowLight);
+        } else if (faceDetected) {
+          setVoiceMessage(voiceMessages.goodLight);
+        }
       }
     }, 3000);
 
     return () => clearInterval(timer);
-  }, [faceDetected]);
+  }, [faceDetected, vocalGuidance]);
 
   const handleCapture = async () => {
     setIsCapturing(true);
@@ -152,96 +161,72 @@ export const PhotoCaptureScreen = () => {
     }
   };
 
-  const getLightIndicatorColor = () => {
-    switch (lightQuality) {
-      case 'excellent':
-        return '#4CAF50';
-      case 'good':
-        return '#FFC107';
-      case 'poor':
-        return '#F44336';
-    }
-  };
 
   return (
     <SafeAreaView style={styles.container}>
+      {/* Header */}
       <View style={styles.header}>
-        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.closeButton}>
-          <Text style={styles.closeButtonText}>✕</Text>
+        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
+          <Icon name="chevron-left" size={28} color={theme.colors.text.primary} />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>AI Camera Assistant</Text>
-        <View style={{ width: 28 }} />
+        <Text style={styles.headerTitle}>Skin Scan</Text>
+        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.closeButton}>
+          <Icon name="close" size={24} color={theme.colors.text.primary} />
+        </TouchableOpacity>
       </View>
 
+      {/* Vocal Guidance Toggle */}
+      <View style={styles.vocalGuidanceSection}>
+        <Text style={styles.vocalGuidanceLabel}>Vocal Guidance</Text>
+        <View style={styles.vocalGuidanceToggle}>
+          <Icon name="volume-up" size={20} color={theme.colors.text.secondary} style={styles.volumeIcon} />
+          <Text style={styles.volumeText}>{volumeLevel}%</Text>
+          <Text style={styles.volumeNote}>Rear camera only</Text>
+          <Switch
+            value={vocalGuidance}
+            onValueChange={setVocalGuidance}
+            trackColor={{ false: theme.colors.border.light, true: theme.colors.primary.blue }}
+            thumbColor={vocalGuidance ? theme.colors.text.inverse : theme.colors.background.tertiary}
+            style={styles.switch}
+          />
+        </View>
+      </View>
+
+      {/* Camera View */}
       <View style={styles.cameraContainer}>
-        {/* Camera preview placeholder */}
         <View style={styles.cameraPreview}>
-          {/* Face outline guide */}
-          <View style={styles.faceGuide}>
-            <View style={styles.faceOutline}>
-              <Icon 
-                name="face" 
-                size={120} 
-                color={faceDetected ? '#4CAF50' : '#fff'} 
-                style={{ opacity: 0.7 }}
-              />
+          {/* Face Guide Overlay */}
+          <View style={styles.faceGuideOverlay}>
+            <View style={styles.faceGuideBox}>
+              {/* Face outline visual guide */}
+              <View style={styles.faceOutline} />
             </View>
           </View>
-
-          {/* Light indicator */}
-          <View style={styles.lightIndicator}>
-            <Icon name="wb-sunny" size={24} color={getLightIndicatorColor()} />
-            <Text style={[styles.lightText, { color: getLightIndicatorColor() }]}>
-              {lightQuality === 'excellent' ? 'Perfect Light' : 
-               lightQuality === 'good' ? 'Good Light' : 'Low Light'}
-            </Text>
-          </View>
-
-          {/* Voice guidance */}
-          <View style={styles.voiceGuidance}>
-            <Icon name="mic" size={20} color="#fff" />
-            <Text style={styles.voiceText}>{voiceMessage}</Text>
-          </View>
-        </View>
-
-        {/* Professional tools */}
-        <View style={styles.toolsBar}>
-          <TouchableOpacity style={styles.tool}>
-            <Icon name="wb-incandescent" size={24} color="#fff" />
-            <Text style={styles.toolText}>Fill Light</Text>
-          </TouchableOpacity>
-          <TouchableOpacity style={styles.tool}>
-            <Icon name="hdr-strong" size={24} color="#fff" />
-            <Text style={styles.toolText}>HDR</Text>
-          </TouchableOpacity>
-          <TouchableOpacity style={styles.tool}>
-            <Icon name="grid-on" size={24} color="#fff" />
-            <Text style={styles.toolText}>Grid</Text>
-          </TouchableOpacity>
         </View>
       </View>
 
-      {/* Capture button */}
-      <View style={styles.captureContainer}>
+      {/* Instructions and Capture Button */}
+      <View style={styles.bottomSection}>
+        <Text style={styles.instructionText}>
+          Follow voice guidance to find the right distance.
+          Close your eyes when prompted.
+          The camera will take your photo automatically.
+        </Text>
+        
         <TouchableOpacity
           style={[
             styles.captureButton,
-            (lightQuality === 'excellent' && faceDetected) && styles.captureButtonReady,
+            isCapturing && styles.captureButtonActive,
           ]}
           onPress={handleCapture}
           disabled={isCapturing}
         >
           {isCapturing ? (
-            <ActivityIndicator size="large" color="#fff" />
+            <ActivityIndicator size="large" color={theme.colors.text.inverse} />
           ) : (
             <View style={styles.captureInner} />
           )}
         </TouchableOpacity>
-        
-        {/* Auto-capture indicator */}
-        {lightQuality === 'excellent' && faceDetected && !isCapturing && (
-          <Text style={styles.autoCaptureTip}>Ready for auto-capture...</Text>
-        )}
       </View>
     </SafeAreaView>
   );
@@ -250,30 +235,77 @@ export const PhotoCaptureScreen = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#000',
+    backgroundColor: theme.colors.background.secondary,
   },
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingHorizontal: 20,
-    paddingVertical: 15,
+    paddingHorizontal: theme.layout.screenPadding,
+    paddingVertical: theme.spacing.md,
+    backgroundColor: theme.colors.background.primary,
+  },
+  backButton: {
+    width: 40,
+    height: 40,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   headerTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: '#fff',
+    ...theme.typography.styles.headline,
+    color: theme.colors.text.primary,
+  },
+  closeButton: {
+    width: 40,
+    height: 40,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderRadius: 20,
+    backgroundColor: theme.colors.background.tertiary,
+  },
+  vocalGuidanceSection: {
+    backgroundColor: theme.colors.background.primary,
+    paddingHorizontal: theme.layout.screenPadding,
+    paddingVertical: theme.spacing.lg,
+    marginBottom: theme.spacing.sm,
+  },
+  vocalGuidanceLabel: {
+    ...theme.typography.styles.headline,
+    color: theme.colors.text.primary,
+    marginBottom: theme.spacing.sm,
+  },
+  vocalGuidanceToggle: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  volumeIcon: {
+    marginRight: theme.spacing.sm,
+  },
+  volumeText: {
+    ...theme.typography.styles.callout,
+    color: theme.colors.text.primary,
+    marginRight: theme.spacing.md,
+  },
+  volumeNote: {
+    ...theme.typography.styles.caption1,
+    color: theme.colors.text.tertiary,
+    flex: 1,
+  },
+  switch: {
+    marginLeft: 'auto',
   },
   cameraContainer: {
     flex: 1,
+    backgroundColor: theme.colors.text.primary,
+    borderRadius: theme.borderRadius.card,
+    margin: theme.layout.screenPadding,
+    overflow: 'hidden',
   },
   cameraPreview: {
     flex: 1,
     backgroundColor: '#1a1a1a',
-    justifyContent: 'center',
-    alignItems: 'center',
   },
-  faceGuide: {
+  faceGuideOverlay: {
     position: 'absolute',
     top: 0,
     left: 0,
@@ -282,98 +314,49 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
-  faceOutline: {
-    width: 250,
-    height: 300,
-    borderWidth: 2,
-    borderColor: '#fff',
-    borderRadius: 125,
-    borderStyle: 'dashed',
+  faceGuideBox: {
+    width: screenWidth * 0.7,
+    height: screenHeight * 0.4,
     justifyContent: 'center',
     alignItems: 'center',
   },
-  lightIndicator: {
-    position: 'absolute',
-    top: 50,
-    right: 20,
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: 'rgba(0,0,0,0.5)',
-    paddingHorizontal: 15,
-    paddingVertical: 8,
-    borderRadius: 20,
+  faceOutline: {
+    width: '100%',
+    height: '100%',
+    borderWidth: 2,
+    borderColor: theme.colors.skin.score,
+    borderRadius: screenWidth * 0.35,
+    borderStyle: 'dashed',
   },
-  lightText: {
-    marginLeft: 8,
-    fontSize: 14,
-    fontWeight: 'bold',
+  bottomSection: {
+    backgroundColor: theme.colors.background.primary,
+    paddingHorizontal: theme.layout.screenPadding,
+    paddingTop: theme.spacing.xl,
+    paddingBottom: theme.spacing['4xl'],
   },
-  voiceGuidance: {
-    position: 'absolute',
-    bottom: 30,
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: 'rgba(0,0,0,0.7)',
-    paddingHorizontal: 20,
-    paddingVertical: 10,
-    borderRadius: 25,
-  },
-  voiceText: {
-    color: '#fff',
-    marginLeft: 10,
-    fontSize: 16,
-  },
-  toolsBar: {
-    flexDirection: 'row',
-    justifyContent: 'space-around',
-    paddingVertical: 20,
-    backgroundColor: 'rgba(0,0,0,0.8)',
-  },
-  tool: {
-    alignItems: 'center',
-  },
-  toolText: {
-    color: '#fff',
-    fontSize: 12,
-    marginTop: 5,
-  },
-  captureContainer: {
-    alignItems: 'center',
-    paddingVertical: 30,
+  instructionText: {
+    ...theme.typography.styles.footnote,
+    color: theme.colors.text.secondary,
+    textAlign: 'center',
+    lineHeight: 20,
+    marginBottom: theme.spacing['3xl'],
   },
   captureButton: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
-    backgroundColor: '#FF6B6B',
+    width: 70,
+    height: 70,
+    borderRadius: 35,
+    backgroundColor: theme.colors.skin.score,
     justifyContent: 'center',
     alignItems: 'center',
-    borderWidth: 4,
-    borderColor: '#fff',
+    alignSelf: 'center',
   },
-  captureButtonReady: {
-    backgroundColor: '#4CAF50',
+  captureButtonActive: {
+    opacity: 0.7,
   },
   captureInner: {
-    width: 60,
-    height: 60,
-    borderRadius: 30,
-    backgroundColor: '#fff',
-  },
-  autoCaptureTip: {
-    color: '#4CAF50',
-    marginTop: 10,
-    fontSize: 14,
-  },
-  closeButton: {
-    width: 28,
-    height: 28,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  closeButtonText: {
-    color: '#fff',
-    fontSize: 24,
-    fontWeight: 'bold',
+    width: 50,
+    height: 50,
+    borderRadius: 25,
+    backgroundColor: theme.colors.text.inverse,
   },
 });

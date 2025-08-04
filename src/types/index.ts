@@ -204,3 +204,12 @@ export interface StorageStats {
   averageSizeMB: number;
   remainingMB: number;
 }
+
+export interface Treatment {
+  id: string;
+  name: string;
+  description: string;
+  benefits: string[];
+  duration: string;
+  targetConcerns: string[];
+}

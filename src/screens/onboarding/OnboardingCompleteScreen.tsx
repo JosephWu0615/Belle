@@ -6,11 +6,9 @@ import {
   TouchableOpacity,
   SafeAreaView,
 } from 'react-native';
-import { useNavigation } from '@react-navigation/native';
 import { useUserStore } from '../../store/userStore';
 
 export const OnboardingCompleteScreen = () => {
-  const navigation = useNavigation();
   const { setOnboarded } = useUserStore();
 
   const handleComplete = () => {

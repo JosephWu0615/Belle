@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { Record, SkinRecord, MedicalRecord, ProductRecord } from '../types';
+import { Record } from '../types';
 import { format } from 'date-fns';
 
 interface RecordStore {

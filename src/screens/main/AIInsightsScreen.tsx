@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import {
   View,
   Text,
@@ -6,288 +6,297 @@ import {
   ScrollView,
   TouchableOpacity,
   SafeAreaView,
-  Image,
-  ActivityIndicator,
-  RefreshControl,
+  Dimensions,
 } from 'react-native';
 import Icon from 'react-native-vector-icons/MaterialIcons';
-import { useNavigation } from '@react-navigation/native';
-import { usePhotoStore } from '../../store/photoStore';
-import { mockAnalyzeSkin, mockGetRecommendations } from '../../services/mockApi';
-import { AIAnalysisReport } from '../../types';
+import { LineChart } from 'react-native-chart-kit';
+import { theme } from '../../theme';
 import { format } from 'date-fns';
 
+const screenWidth = Dimensions.get('window').width;
+
 export const AIInsightsScreen = () => {
-  const navigation = useNavigation();
-  const { getRecentPhotos, addPhoto } = usePhotoStore();
-  const [latestAnalysis, setLatestAnalysis] = useState<AIAnalysisReport | null>(null);
-  const [recommendations, setRecommendations] = useState<any>(null);
-  const [isLoading, setIsLoading] = useState(false);
-  const [refreshing, setRefreshing] = useState(false);
+  const [activeTab, setActiveTab] = useState<'all' | 'skinReport' | 'treatment'>('all');
+  const [showFullHistory, setShowFullHistory] = useState(false);
 
-  const loadAnalysis = async () => {
-    setIsLoading(true);
-    try {
-      const recentPhotos = getRecentPhotos(1);
-      
-      if (recentPhotos.length > 0) {
-        const latestPhoto = recentPhotos[0];
-        const analysis = await mockAnalyzeSkin(latestPhoto.id);
-        setLatestAnalysis(analysis);
-        
-        const recs = await mockGetRecommendations(analysis.id);
-        setRecommendations(recs);
-      }
-    } catch (error) {
-      console.error('Failed to load analysis:', error);
-    } finally {
-      setIsLoading(false);
-      setRefreshing(false);
-    }
+  // Mock data for skin score
+  const skinScore = 86;
+  const scoreChange = 5;
+
+  // Mock chart data
+  const chartData = {
+    labels: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
+    datasets: [
+      {
+        data: [78, 80, 79, 82, 81, 84, 86],
+        color: (opacity = 1) => `rgba(255, 107, 107, ${opacity})`,
+        strokeWidth: 3,
+      },
+    ],
   };
 
-  useEffect(() => {
-    loadAnalysis();
-  }, []);
+  // Mock records data
+  const skinRecords = [
+    {
+      id: '1',
+      date: new Date('2025-07-20'),
+      type: 'week' as const,
+      issues: ['Issue 1', 'Issue 2', 'Issue 3'],
+      title: 'Good Job!',
+      description: 'Your skin condition has improved significantly this week, in terms of moisturizing and gloss.',
+    },
+    {
+      id: '2',
+      date: new Date('2025-07-27'),
+      type: 'month' as const,
+      issues: ['Issue 1', 'Issue 2', 'Issue 3'],
+      title: 'Nice',
+      description: 'Your skin condition has improved significantly this week, in terms of moisturizing and gloss.',
+    },
+  ];
 
-  const onRefresh = () => {
-    setRefreshing(true);
-    loadAnalysis();
-  };
+  const treatmentRecords = [
+    {
+      id: '1',
+      rating: 4.5,
+      name: 'PicoSure',
+      description: 'An advanced laser treatment that removes tattoos, fades pigmentation, and improves skin texture.',
+      clinic: 'Belle Beauty Clinic',
+      doctor: 'Dr. Smith',
+      date: new Date('2025-08-02'),
+      price: 20000,
+      issues: ['Mild itching', 'Headache or pressure'],
+    },
+    {
+      id: '2',
+      rating: 4.5,
+      name: 'PicoSure',
+      description: 'An advanced laser treatment that removes tattoos, fades pigmentation, and improves skin texture.',
+      clinic: 'Belle Beauty Clinic',
+      doctor: 'Dr. Smith',
+      date: new Date('2025-08-12'),
+      price: 20000,
+      issues: ['Mild itching', 'Headache or pressure'],
+    },
+  ];
 
-  const generateRandomReport = async () => {
-    setIsLoading(true);
-    try {
-      // Generate a random photo
-      const randomColors = ['FF6B6B', '4169E1', '4CAF50', 'FFC107', '9C27B0'];
-      const randomColor = randomColors[Math.floor(Math.random() * randomColors.length)];
-      const randomScore = Math.floor(Math.random() * 20) + 70; // 70-90
-      
-      const mockPhoto = {
-        id: `mock-${Date.now()}`,
-        uri: `https://via.placeholder.com/400x400/${randomColor}/FFFFFF?text=Score+${randomScore}`,
-        takenAt: new Date(),
-        lightQuality: ['poor', 'good', 'excellent'][Math.floor(Math.random() * 3)] as 'poor' | 'good' | 'excellent',
-        faceDetected: true,
-        paths: {
-          original: `https://via.placeholder.com/400x400/${randomColor}/FFFFFF?text=Score+${randomScore}`,
-          compressed: `https://via.placeholder.com/400x400/${randomColor}/FFFFFF?text=Score+${randomScore}`,
-          thumbnail: `https://via.placeholder.com/400x400/${randomColor}/FFFFFF?text=Score+${randomScore}`,
-        },
-        metadata: {
-          fileSize: 1024 * 1024 * Math.random() * 3,
-          dimensions: { width: 400, height: 400 },
-          format: 'jpeg' as const,
-          compressionRatio: 0.85,
-        },
-      };
-      
-      // Add photo to store
-      await addPhoto(mockPhoto);
-      
-      // Generate analysis
-      const analysis = await mockAnalyzeSkin(mockPhoto.id);
-      setLatestAnalysis(analysis);
-      
-      const recs = await mockGetRecommendations(analysis.id);
-      setRecommendations(recs);
-    } catch (error) {
-      console.error('Failed to generate random report:', error);
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const renderScoreCard = (label: string, score: number, icon: string, color: string) => {
+  const renderTab = (tab: 'all' | 'skinReport' | 'treatment', label: string) => {
     return (
-      <View style={styles.scoreCard}>
-        <Icon name={icon} size={24} color={color} />
-        <Text style={styles.scoreLabel}>{label}</Text>
-        <Text style={[styles.scoreValue, { color }]}>{score}</Text>
-        <View style={styles.scoreBar}>
-          <View style={[styles.scoreBarFill, { width: `${score}%`, backgroundColor: color }]} />
-        </View>
-      </View>
+      <TouchableOpacity
+        style={[styles.tab, activeTab === tab && styles.activeTab]}
+        onPress={() => setActiveTab(tab)}
+      >
+        {tab === 'all' && activeTab === 'all' ? (
+          <View style={styles.allTabCircle}>
+            <Text style={styles.allTabText}>
+              {label}
+            </Text>
+          </View>
+        ) : (
+          <Text style={[styles.tabText, activeTab === tab && styles.activeTabText]}>
+            {label}
+          </Text>
+        )}
+      </TouchableOpacity>
     );
   };
 
-  const renderInsight = (insight: AIAnalysisReport['insights'][0]) => {
-    const severityColors: Record<'info' | 'warning' | 'success', string> = {
-      info: '#3498db',
-      warning: '#f39c12',
-      success: '#27ae60',
-    };
-
+  const renderSkinRecord = (record: typeof skinRecords[0]) => {
     return (
-      <View key={insight.category} style={styles.insightCard}>
-        <View style={[styles.insightHeader, { borderLeftColor: severityColors[insight.severity] }]}>
-          <Text style={styles.insightTitle}>{insight.title}</Text>
-          <Icon 
-            name={insight.severity === 'success' ? 'check-circle' : 'info'} 
-            size={20} 
-            color={severityColors[insight.severity]} 
-          />
+      <TouchableOpacity key={record.id} style={styles.recordCard}>
+        <View style={styles.recordHeader}>
+          <Text style={styles.recordDate}>
+            {record.type === 'week' ? 'Week Review' : 'Month Review'}
+          </Text>
+          <Text style={styles.recordDateText}>
+            {format(record.date, 'M/dd-M/dd')}
+          </Text>
         </View>
-        <Text style={styles.insightDescription}>{insight.description}</Text>
-        <View style={styles.recommendationList}>
-          {insight.recommendations.map((rec: string, index: number) => (
-            <View key={index} style={styles.recommendationItem}>
-              <Icon name="check" size={16} color="#27ae60" />
-              <Text style={styles.recommendationText}>{rec}</Text>
+        <Text style={styles.recordTitle}>{record.title}</Text>
+        <View style={styles.recordIssues}>
+          {record.issues.map((issue, index) => (
+            <React.Fragment key={index}>
+              <Icon name="lens" size={8} color={theme.colors.text.tertiary} />
+              <Text style={styles.issueText}>{issue}:</Text>
+            </React.Fragment>
+          ))}
+        </View>
+        <Text style={styles.recordDescription}>{record.description}</Text>
+        <Icon 
+          name="chevron-right" 
+          size={24} 
+          color={theme.colors.text.tertiary} 
+          style={styles.chevronIcon}
+        />
+      </TouchableOpacity>
+    );
+  };
+
+  const renderTreatmentRecord = (record: typeof treatmentRecords[0]) => {
+    return (
+      <TouchableOpacity key={record.id} style={styles.treatmentCard}>
+        <View style={styles.treatmentHeader}>
+          <View style={styles.ratingBadge}>
+            <Icon name="star" size={14} color="#fff" />
+            <Text style={styles.ratingText}>{record.rating}</Text>
+          </View>
+          <Text style={styles.treatmentName}>{record.name}</Text>
+        </View>
+        <Text style={styles.treatmentDescription}>{record.description}</Text>
+        <View style={styles.treatmentDetails}>
+          <Text style={styles.detailText}>{record.clinic}</Text>
+          <Text style={styles.detailText}>{record.doctor}</Text>
+        </View>
+        <View style={styles.treatmentFooter}>
+          <Text style={styles.dateText}>{format(record.date, 'yyyy/MM/dd')}</Text>
+          <Text style={styles.priceText}>${record.price.toLocaleString()}</Text>
+        </View>
+        <View style={styles.treatmentIssues}>
+          {record.issues.map((issue, index) => (
+            <View key={index} style={styles.issueChip}>
+              <Text style={styles.issueEmoji}>😕</Text>
+              <Text style={styles.issueChipText}>{issue}</Text>
             </View>
           ))}
         </View>
-      </View>
+      </TouchableOpacity>
     );
   };
 
-  if (isLoading && !refreshing) {
-    return (
-      <SafeAreaView style={styles.container}>
-        <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color="#FF6B6B" />
-          <Text style={styles.loadingText}>Analyzing your skin...</Text>
-        </View>
-      </SafeAreaView>
-    );
-  }
-
-  if (!latestAnalysis) {
-    return (
-      <SafeAreaView style={styles.container}>
-        <ScrollView 
-          style={{ flex: 1 }}
-          contentContainerStyle={{ flexGrow: 1, justifyContent: 'center' }}
-        >
-          <View style={styles.emptyState}>
-            <Icon name="camera-alt" size={80} color="#ddd" />
-            <Text style={styles.emptyTitle}>No photos yet</Text>
-            <Text style={styles.emptyText}>Tap the camera button below to start recording</Text>
-            <TouchableOpacity
-              style={styles.generateButton}
-              onPress={generateRandomReport}
-            >
-              <Icon name="auto-awesome" size={20} color="#fff" />
-              <Text style={styles.generateButtonText}>Generate Test Report</Text>
-            </TouchableOpacity>
-          </View>
-        </ScrollView>
-      </SafeAreaView>
-    );
-  }
-
-  const latestPhoto = getRecentPhotos(1)[0];
 
   return (
     <SafeAreaView style={styles.container}>
-      <ScrollView 
-        style={{ flex: 1 }}
-        contentContainerStyle={{ paddingBottom: 30 }}
-        showsVerticalScrollIndicator={true}
-        bounces={true}
-        refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
-        }
-      >
-        {/* Latest Photo Section */}
-        <View style={styles.photoSection}>
-          <Image source={{ uri: latestPhoto.uri }} style={styles.analysisPhoto} />
-          <View style={styles.photoInfo}>
-            <Text style={styles.photoDate}>
-              {format(new Date(latestPhoto.takenAt), 'MMM dd, yyyy HH:mm')}
-            </Text>
-            <View style={styles.photoQuality}>
-              <Icon name="wb-sunny" size={16} color="#4CAF50" />
-              <Text style={styles.qualityText}>Light {latestPhoto.lightQuality === 'excellent' ? 'Perfect' : 'Good'}</Text>
+      <ScrollView showsVerticalScrollIndicator={false}>
+        {/* Header */}
+        <View style={styles.header}>
+          <Text style={styles.headerTitle}>Insight</Text>
+        </View>
+
+        {/* Score Section */}
+        <View style={styles.scoreSection}>
+          <View style={styles.scoreHeader}>
+            <View style={styles.scoreBadge}>
+              <Text style={styles.scoreBadgeText}>Skin Score</Text>
+            </View>
+            <Text style={styles.scoreDate}>July, 26th</Text>
+          </View>
+          
+          <View style={styles.scoreContent}>
+            <View style={styles.scoreDisplay}>
+              <Text style={styles.scoreValue}>{skinScore}</Text>
+              <Text style={styles.scoreChange}>+{scoreChange}%</Text>
+            </View>
+            <View style={styles.chartContainer}>
+              <LineChart
+                data={chartData}
+                width={screenWidth - 200}
+                height={80}
+                chartConfig={{
+                  backgroundColor: 'transparent',
+                  backgroundGradientFrom: '#fff',
+                  backgroundGradientTo: '#fff',
+                  fillShadowGradient: theme.colors.skin.score,
+                  fillShadowGradientOpacity: 0.1,
+                  decimalPlaces: 0,
+                  color: (opacity = 1) => `rgba(255, 107, 107, ${opacity})`,
+                  labelColor: (opacity = 1) => `rgba(155, 163, 175, ${opacity})`,
+                  style: {
+                    borderRadius: 16,
+                  },
+                  propsForDots: {
+                    r: '5',
+                    strokeWidth: '0',
+                    fill: theme.colors.skin.score,
+                  },
+                }}
+                bezier
+                style={styles.chartStyle}
+                withInnerLines={false}
+                withOuterLines={false}
+                withVerticalLabels={false}
+                withHorizontalLabels={false}
+                withDots={true}
+                withShadow={false}
+                fromZero={false}
+                transparent={true}
+              />
             </View>
           </View>
+          
+          <Text style={styles.scoreMessage}>
+            Your overall skin score is {skinScore}, up {scoreChange}% from last week. View full report.
+          </Text>
+          <TouchableOpacity style={styles.deleteIcon}>
+            <Icon name="more-horiz" size={20} color={theme.colors.text.tertiary} />
+          </TouchableOpacity>
         </View>
 
-        {/* Overall Score */}
-        <View style={styles.overallScoreCard}>
-          <Text style={styles.overallScoreTitle}>Overall Score</Text>
-          <Text style={styles.overallScoreValue}>{latestAnalysis.scores.overall}</Text>
-          <View style={styles.scoreComparison}>
-            <Icon 
-              name={latestAnalysis.comparisonWithLast.overall >= 0 ? 'trending-up' : 'trending-down'} 
-              size={20} 
-              color={latestAnalysis.comparisonWithLast.overall >= 0 ? '#27ae60' : '#e74c3c'} 
-            />
-            <Text style={[
-              styles.comparisonText,
-              { color: latestAnalysis.comparisonWithLast.overall >= 0 ? '#27ae60' : '#e74c3c' }
-            ]}>
-              Compared to last time {latestAnalysis.comparisonWithLast.overall >= 0 ? '+' : ''}{latestAnalysis.comparisonWithLast.overall} points
-            </Text>
-          </View>
+        {/* Tabs */}
+        <View style={styles.tabs}>
+          {renderTab('all', 'All')}
+          {renderTab('skinReport', 'Skin Report')}
+          {renderTab('treatment', 'Treatment')}
         </View>
 
-        {/* Detailed Scores */}
-        <View style={styles.scoresSection}>
-          <Text style={styles.sectionTitle}>Detailed Scores</Text>
-          <View style={styles.scoresGrid}>
-            {renderScoreCard('Hydration', latestAnalysis.scores.hydration, 'opacity', '#3498db')}
-            {renderScoreCard('Elasticity', latestAnalysis.scores.elasticity, 'fitness-center', '#9b59b6')}
-            {renderScoreCard('Pores', latestAnalysis.scores.pores, 'blur-circular', '#e67e22')}
-            {renderScoreCard('Texture', latestAnalysis.scores.texture, 'texture', '#1abc9c')}
-            {renderScoreCard('Radiance', latestAnalysis.scores.radiance, 'wb-sunny', '#f39c12')}
-          </View>
-        </View>
-
-        {/* AI Insights */}
-        <View style={styles.insightsSection}>
-          <Text style={styles.sectionTitle}>AI Insights</Text>
-          {latestAnalysis.insights.map(insight => renderInsight(insight))}
-        </View>
-
-        {/* Recommended Products */}
-        {recommendations && (
-          <View style={styles.productsSection}>
-            <Text style={styles.sectionTitle}>Recommended Products</Text>
-            {recommendations.products.map((product: any, index: number) => (
-              <View key={index} style={styles.productCard}>
-                <View style={styles.productHeader}>
-                  <Text style={styles.productCategory}>{product.category}</Text>
-                  <Text style={styles.productName}>{product.name}</Text>
-                </View>
-                <Text style={styles.productDescription}>{product.description}</Text>
-                <View style={styles.ingredientsList}>
-                  {product.keyIngredients.map((ingredient: string, i: number) => (
-                    <View key={i} style={styles.ingredientChip}>
-                      <Text style={styles.ingredientText}>{ingredient}</Text>
-                    </View>
-                  ))}
-                </View>
-                <Text style={styles.productUsage}>{product.usage}</Text>
+        {/* Content based on active tab */}
+        {activeTab === 'all' && (
+          <>
+            {/* Skin Record Section */}
+            <View style={styles.section}>
+              <View style={styles.sectionHeader}>
+                <Text style={styles.sectionTitle}>Skin Record</Text>
+                <TouchableOpacity>
+                  <Icon name="expand-less" size={24} color={theme.colors.text.primary} />
+                </TouchableOpacity>
               </View>
-            ))}
+              <Text style={styles.nextReportText}>
+                Next report will be unlocked in 2 days.
+              </Text>
+              <View style={styles.progressBar}>
+                <View style={styles.progressFill} />
+              </View>
+              {skinRecords.map(renderSkinRecord)}
+            </View>
+
+            {/* Treatment Record Section */}
+            <View style={styles.section}>
+              <View style={styles.sectionHeader}>
+                <Text style={styles.sectionTitle}>Treatment Record</Text>
+                <TouchableOpacity>
+                  <Icon name="expand-more" size={24} color={theme.colors.text.primary} />
+                </TouchableOpacity>
+              </View>
+              {treatmentRecords.map(renderTreatmentRecord)}
+              {!showFullHistory && (
+                <TouchableOpacity 
+                  style={styles.viewFullHistory}
+                  onPress={() => setShowFullHistory(true)}
+                >
+                  <Text style={styles.viewFullHistoryText}>View full history</Text>
+                </TouchableOpacity>
+              )}
+            </View>
+          </>
+        )}
+
+        {activeTab === 'skinReport' && (
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>Skin Record</Text>
+            {skinRecords.map(renderSkinRecord)}
           </View>
         )}
 
-        {/* Action Buttons */}
-        <View style={styles.actionButtons}>
-          <TouchableOpacity 
-            style={styles.compareButton}
-            onPress={() => navigation.navigate('Compare' as never)}
-          >
-            <Icon name="compare" size={20} color="#FF6B6B" />
-            <Text style={styles.compareButtonText}>View History</Text>
-          </TouchableOpacity>
-          <TouchableOpacity style={styles.shareButton}>
-            <Icon name="share" size={20} color="#fff" />
-            <Text style={styles.shareButtonText}>Share Report</Text>
-          </TouchableOpacity>
-        </View>
-        
-        {/* Generate Random Report Button */}
-        <View style={styles.generateButtonContainer}>
-          <TouchableOpacity
-            style={styles.generateButton}
-            onPress={generateRandomReport}
-          >
-            <Icon name="auto-awesome" size={20} color="#fff" />
-            <Text style={styles.generateButtonText}>Generate New Test Report</Text>
-          </TouchableOpacity>
+        {activeTab === 'treatment' && (
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>Treatment Record</Text>
+            {treatmentRecords.map(renderTreatmentRecord)}
+          </View>
+        )}
+
+        {/* Belle Logo */}
+        <View style={styles.logoContainer}>
+          <Text style={styles.logoText}>Belle</Text>
+          <Text style={styles.logoSubtext}>Your Beauty Bestie</Text>
         </View>
       </ScrollView>
     </SafeAreaView>
@@ -297,294 +306,322 @@ export const AIInsightsScreen = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f8f9fa',
+    backgroundColor: theme.colors.background.secondary,
   },
-  loadingContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
+  header: {
+    backgroundColor: theme.colors.background.primary,
+    paddingHorizontal: theme.layout.screenPadding,
+    paddingTop: theme.spacing.lg,
+    paddingBottom: theme.spacing.md,
   },
-  loadingText: {
-    marginTop: 10,
-    fontSize: 16,
-    color: '#7f8c8d',
+  headerTitle: {
+    ...theme.typography.styles.largeTitle,
+    color: theme.colors.text.primary,
   },
-  emptyState: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    paddingTop: 100,
+  scoreSection: {
+    backgroundColor: theme.colors.background.primary,
+    margin: theme.spacing.sm,
+    borderRadius: theme.borderRadius.card,
+    padding: theme.spacing.lg,
+    paddingBottom: theme.spacing.xl,
+    position: 'relative',
+    minHeight: 200,
   },
-  emptyTitle: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    color: '#2c3e50',
-    marginTop: 20,
-    marginBottom: 10,
-  },
-  emptyText: {
-    fontSize: 16,
-    color: '#7f8c8d',
-  },
-  photoSection: {
-    backgroundColor: '#fff',
-    marginBottom: 10,
-  },
-  analysisPhoto: {
-    width: '100%',
-    height: 300,
-    resizeMode: 'cover',
-  },
-  photoInfo: {
-    padding: 15,
+  scoreHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
+    marginBottom: theme.spacing.md,
   },
-  photoDate: {
-    fontSize: 14,
-    color: '#7f8c8d',
+  scoreBadge: {
+    backgroundColor: theme.colors.skin.scoreBackground,
+    paddingHorizontal: theme.spacing.md,
+    paddingVertical: theme.spacing.xs,
+    borderRadius: theme.borderRadius.md,
   },
-  photoQuality: {
+  scoreBadgeText: {
+    ...theme.typography.styles.caption1,
+    color: theme.colors.skin.score,
+    fontWeight: theme.typography.fontWeight.medium,
+  },
+  scoreDate: {
+    ...theme.typography.styles.caption1,
+    color: theme.colors.text.tertiary,
+  },
+  scoreContent: {
     flexDirection: 'row',
     alignItems: 'center',
+    marginBottom: theme.spacing.lg,
+    minHeight: 100,
   },
-  qualityText: {
-    marginLeft: 5,
-    fontSize: 14,
-    color: '#4CAF50',
-  },
-  overallScoreCard: {
-    backgroundColor: '#fff',
-    margin: 10,
-    padding: 20,
-    borderRadius: 15,
-    alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
-  },
-  overallScoreTitle: {
-    fontSize: 16,
-    color: '#7f8c8d',
-    marginBottom: 10,
-  },
-  overallScoreValue: {
-    fontSize: 60,
-    fontWeight: 'bold',
-    color: '#FF6B6B',
-  },
-  scoreComparison: {
+  scoreDisplay: {
     flexDirection: 'row',
-    alignItems: 'center',
-    marginTop: 10,
-  },
-  comparisonText: {
-    marginLeft: 5,
-    fontSize: 16,
-    fontWeight: '600',
-  },
-  scoresSection: {
-    backgroundColor: '#fff',
-    margin: 10,
-    padding: 20,
-    borderRadius: 15,
-  },
-  sectionTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: '#2c3e50',
-    marginBottom: 15,
-  },
-  scoresGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    justifyContent: 'space-between',
-  },
-  scoreCard: {
-    width: '48%',
-    backgroundColor: '#f8f9fa',
-    padding: 15,
-    borderRadius: 10,
-    marginBottom: 10,
-    alignItems: 'center',
-  },
-  scoreLabel: {
-    fontSize: 14,
-    color: '#7f8c8d',
-    marginTop: 5,
+    alignItems: 'baseline',
+    marginBottom: theme.spacing.lg,
   },
   scoreValue: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    marginVertical: 5,
+    ...theme.typography.styles.largeTitle,
+    fontSize: 48,
+    color: theme.colors.skin.score,
+    fontWeight: theme.typography.fontWeight.light,
+    lineHeight: 52,
+    includeFontPadding: false,
+    marginTop: -5,
   },
-  scoreBar: {
-    width: '100%',
-    height: 4,
-    backgroundColor: '#ecf0f1',
-    borderRadius: 2,
-    marginTop: 5,
+  scoreChange: {
+    ...theme.typography.styles.title3,
+    color: theme.colors.skin.score,
+    marginLeft: theme.spacing.sm,
   },
-  scoreBarFill: {
-    height: '100%',
-    borderRadius: 2,
+  chartContainer: {
+    flex: 1,
+    alignItems: 'flex-end',
+    justifyContent: 'center',
+    marginLeft: theme.spacing.lg,
   },
-  insightsSection: {
-    backgroundColor: '#fff',
-    margin: 10,
-    padding: 20,
-    borderRadius: 15,
+  scoreMessage: {
+    ...theme.typography.styles.footnote,
+    color: theme.colors.text.secondary,
+    lineHeight: 20,
   },
-  insightCard: {
-    marginBottom: 15,
+  deleteIcon: {
+    position: 'absolute',
+    top: theme.spacing.lg,
+    right: theme.spacing.lg,
   },
-  insightHeader: {
+  tabs: {
+    flexDirection: 'row',
+    backgroundColor: theme.colors.background.primary,
+    paddingHorizontal: theme.layout.screenPadding,
+    borderBottomWidth: 1,
+    borderBottomColor: theme.colors.border.light,
+  },
+  tab: {
+    paddingVertical: theme.spacing.md,
+    marginRight: theme.spacing['2xl'],
+  },
+  activeTab: {
+    borderBottomWidth: 2,
+    borderBottomColor: theme.colors.skin.score,
+  },
+  tabText: {
+    ...theme.typography.styles.callout,
+    color: theme.colors.text.tertiary,
+  },
+  activeTabText: {
+    color: theme.colors.text.primary,
+    fontWeight: theme.typography.fontWeight.semiBold,
+  },
+  allTabCircle: {
+    backgroundColor: theme.colors.skin.score,
+    borderRadius: theme.borderRadius.full,
+    paddingHorizontal: theme.spacing.md,
+    paddingVertical: theme.spacing.xs,
+  },
+  allTabText: {
+    ...theme.typography.styles.callout,
+    color: theme.colors.text.inverse,
+    fontWeight: theme.typography.fontWeight.semiBold,
+  },
+  section: {
+    backgroundColor: theme.colors.background.primary,
+    paddingHorizontal: theme.layout.screenPadding,
+    paddingVertical: theme.spacing.xl,
+    marginTop: theme.spacing.sm,
+  },
+  sectionHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    borderLeftWidth: 3,
-    paddingLeft: 10,
-    marginBottom: 10,
+    marginBottom: theme.spacing.md,
   },
-  insightTitle: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#2c3e50',
+  sectionTitle: {
+    ...theme.typography.styles.headline,
+    color: theme.colors.text.primary,
   },
-  insightDescription: {
-    fontSize: 14,
-    color: '#7f8c8d',
-    marginBottom: 10,
-    paddingLeft: 13,
+  nextReportText: {
+    ...theme.typography.styles.footnote,
+    color: theme.colors.text.secondary,
+    marginBottom: theme.spacing.sm,
   },
-  recommendationList: {
-    paddingLeft: 13,
+  progressBar: {
+    height: 4,
+    backgroundColor: theme.colors.background.tertiary,
+    borderRadius: 2,
+    marginBottom: theme.spacing.xl,
   },
-  recommendationItem: {
+  progressFill: {
+    height: '100%',
+    width: '30%',
+    backgroundColor: theme.colors.skin.score,
+    borderRadius: 2,
+  },
+  recordCard: {
+    backgroundColor: theme.colors.background.secondary,
+    borderRadius: theme.borderRadius.lg,
+    padding: theme.spacing.lg,
+    marginBottom: theme.spacing.md,
+    position: 'relative',
+  },
+  recordHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: theme.spacing.sm,
+  },
+  recordDate: {
+    ...theme.typography.styles.caption1,
+    color: theme.colors.secondary.purple,
+    fontWeight: theme.typography.fontWeight.medium,
+  },
+  recordDateText: {
+    ...theme.typography.styles.caption1,
+    color: theme.colors.text.tertiary,
+  },
+  recordTitle: {
+    ...theme.typography.styles.title3,
+    color: theme.colors.secondary.purple,
+    marginBottom: theme.spacing.sm,
+  },
+  recordIssues: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 5,
+    marginBottom: theme.spacing.md,
   },
-  recommendationText: {
-    fontSize: 14,
-    color: '#34495e',
-    marginLeft: 8,
+  issueText: {
+    ...theme.typography.styles.caption1,
+    color: theme.colors.text.tertiary,
+    marginLeft: theme.spacing.xs,
+    marginRight: theme.spacing.xs,
   },
-  productsSection: {
-    backgroundColor: '#fff',
-    margin: 10,
-    padding: 20,
-    borderRadius: 15,
+  recordDescription: {
+    ...theme.typography.styles.footnote,
+    color: theme.colors.text.secondary,
+    lineHeight: 20,
   },
-  productCard: {
-    backgroundColor: '#f8f9fa',
-    padding: 15,
-    borderRadius: 10,
-    marginBottom: 10,
+  chevronIcon: {
+    position: 'absolute',
+    right: theme.spacing.lg,
+    top: '50%',
+    marginTop: -12,
   },
-  productHeader: {
-    marginBottom: 10,
+  treatmentCard: {
+    backgroundColor: theme.colors.background.secondary,
+    borderRadius: theme.borderRadius.lg,
+    padding: theme.spacing.md,
+    marginBottom: theme.spacing.md,
   },
-  productCategory: {
+  treatmentHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: theme.spacing.sm,
+  },
+  ratingBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: theme.colors.secondary.coral,
+    paddingHorizontal: theme.spacing.sm,
+    paddingVertical: 2,
+    borderRadius: theme.borderRadius.sm,
+    marginRight: theme.spacing.sm,
+  },
+  ratingText: {
+    ...theme.typography.styles.caption2,
+    color: theme.colors.text.inverse,
+    marginLeft: 2,
+    fontWeight: theme.typography.fontWeight.medium,
+  },
+  treatmentName: {
+    ...theme.typography.styles.headline,
+    color: theme.colors.text.primary,
+    fontWeight: theme.typography.fontWeight.semiBold,
+    fontSize: 18,
+  },
+  treatmentDescription: {
+    ...theme.typography.styles.footnote,
+    color: theme.colors.text.secondary,
+    lineHeight: 18,
+    marginBottom: theme.spacing.sm,
     fontSize: 12,
-    color: '#FF6B6B',
-    textTransform: 'uppercase',
-    marginBottom: 3,
   },
-  productName: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#2c3e50',
+  treatmentDetails: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: theme.spacing.xs,
   },
-  productDescription: {
-    fontSize: 14,
-    color: '#7f8c8d',
-    marginBottom: 10,
+  detailText: {
+    ...theme.typography.styles.caption2,
+    color: theme.colors.text.tertiary,
+    marginRight: theme.spacing.md,
+    fontSize: 11,
   },
-  ingredientsList: {
+  treatmentFooter: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: theme.spacing.sm,
+  },
+  dateText: {
+    ...theme.typography.styles.caption2,
+    color: theme.colors.text.tertiary,
+    fontSize: 11,
+  },
+  priceText: {
+    ...theme.typography.styles.callout,
+    color: '#00BFFF',
+    fontWeight: theme.typography.fontWeight.medium,
+  },
+  treatmentIssues: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    marginBottom: 10,
   },
-  ingredientChip: {
-    backgroundColor: '#e8f4f8',
-    paddingHorizontal: 10,
-    paddingVertical: 5,
-    borderRadius: 15,
-    marginRight: 5,
-    marginBottom: 5,
+  issueChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: theme.colors.background.primary,
+    paddingHorizontal: theme.spacing.xs,
+    paddingVertical: 2,
+    borderRadius: theme.borderRadius.full,
+    marginRight: theme.spacing.xs,
   },
-  ingredientText: {
+  issueChipText: {
+    ...theme.typography.styles.caption2,
+    color: theme.colors.text.secondary,
+    marginLeft: 4,
+    fontSize: 10,
+  },
+  issueEmoji: {
     fontSize: 12,
-    color: '#3498db',
   },
-  productUsage: {
+  viewFullHistory: {
+    alignItems: 'center',
+    paddingVertical: theme.spacing.lg,
+    marginTop: theme.spacing.sm,
+  },
+  viewFullHistoryText: {
+    ...theme.typography.styles.footnote,
+    color: theme.colors.text.tertiary,
     fontSize: 12,
-    color: '#95a5a6',
+  },
+  logoContainer: {
+    alignItems: 'center',
+    paddingVertical: theme.spacing['4xl'],
+  },
+  logoText: {
+    ...theme.typography.styles.title1,
+    color: theme.colors.secondary.coral,
+    fontWeight: theme.typography.fontWeight.light,
+    fontSize: 36,
     fontStyle: 'italic',
   },
-  actionButtons: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    margin: 10,
-    marginBottom: 30,
+  logoSubtext: {
+    ...theme.typography.styles.caption2,
+    color: theme.colors.text.tertiary,
+    marginTop: theme.spacing.xs,
+    fontSize: 10,
   },
-  compareButton: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: '#fff',
-    padding: 15,
-    borderRadius: 10,
-    marginRight: 5,
-    borderWidth: 1,
-    borderColor: '#FF6B6B',
-  },
-  compareButtonText: {
-    marginLeft: 8,
-    fontSize: 16,
-    color: '#FF6B6B',
-    fontWeight: '600',
-  },
-  shareButton: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: '#FF6B6B',
-    padding: 15,
-    borderRadius: 10,
-    marginLeft: 5,
-  },
-  shareButtonText: {
-    marginLeft: 8,
-    fontSize: 16,
-    color: '#fff',
-    fontWeight: '600',
-  },
-  generateButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: '#9b59b6',
-    paddingVertical: 15,
-    paddingHorizontal: 20,
-    borderRadius: 10,
-    marginTop: 20,
-  },
-  generateButtonText: {
-    marginLeft: 8,
-    fontSize: 16,
-    color: '#fff',
-    fontWeight: '600',
-  },
-  generateButtonContainer: {
-    alignItems: 'center',
-    marginHorizontal: 10,
-    marginBottom: 30,
+  chartStyle: {
+    marginVertical: 8,
+    borderRadius: 16,
   },
 });

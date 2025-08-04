@@ -8,6 +8,10 @@ import { DailySkinRecordFlow } from '../screens/records/DailySkinRecordFlow';
 import { MedicalBeautyRecordFlow } from '../screens/records/MedicalBeautyRecordFlow';
 import { ProductRecordFlow } from '../screens/records/ProductRecordFlow';
 import { PhotoCaptureScreen } from '../screens/camera/PhotoCaptureScreen';
+import { ProductScreen } from '../screens/main/ProductScreen';
+import { TreatmentScreen } from '../screens/main/TreatmentScreen';
+import { HistoryScreen } from '../screens/main/HistoryScreen';
+import { AIIngredientSearchScreen } from '../screens/main/AIIngredientSearchScreen';
 import { ActivityIndicator, View } from 'react-native';
 
 const Stack = createStackNavigator();
@@ -17,7 +21,7 @@ export const AppNavigator = () => {
 
   useEffect(() => {
     loadUserData();
-  }, []);
+  }, [loadUserData]);
 
   if (isLoading) {
     return (
@@ -54,6 +58,26 @@ export const AppNavigator = () => {
               name="PhotoCapture" 
               component={PhotoCaptureScreen}
               options={{ presentation: 'modal' }}
+            />
+            <Stack.Screen 
+              name="Product" 
+              component={ProductScreen}
+              options={{ headerShown: false }}
+            />
+            <Stack.Screen 
+              name="Treatment" 
+              component={TreatmentScreen}
+              options={{ headerShown: false }}
+            />
+            <Stack.Screen 
+              name="History" 
+              component={HistoryScreen}
+              options={{ headerShown: false }}
+            />
+            <Stack.Screen 
+              name="AIIngredientSearch" 
+              component={AIIngredientSearchScreen}
+              options={{ headerShown: false }}
             />
           </>
         )}

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import {
   View,
   Text,
@@ -7,241 +7,162 @@ import {
   TouchableOpacity,
   SafeAreaView,
   Image,
-  Modal,
 } from 'react-native';
-import { Calendar } from 'react-native-calendars';
 import { useNavigation } from '@react-navigation/native';
 import Icon from 'react-native-vector-icons/MaterialIcons';
-import { FloatingActionButton } from '../../components/global/FloatingActionButton';
-import { useRecordStore } from '../../store/recordStore';
-import { usePhotoStore } from '../../store/photoStore';
-import { format } from 'date-fns';
-import { Photo } from '../../types';
+// import { useRecordStore } from '../../store/recordStore';
+import { Card, CircularProgress } from '../../components/common';
+import { theme } from '../../theme';
 
 export const DashboardScreen = () => {
   const navigation = useNavigation();
-  const { records, getRecordsByDate } = useRecordStore();
-  const { photos, getPhotosByDate, loadPhotos } = usePhotoStore();
-  const [selectedDate, setSelectedDate] = useState(new Date());
-  const [selectedPhoto, setSelectedPhoto] = useState<Photo | null>(null);
-  const [showPhotoModal, setShowPhotoModal] = useState(false);
+  // const { records } = useRecordStore(); // TODO: Use for actual streak calculation
+  const [streakDays] = useState(14); // TODO: Calculate actual streak
 
-  useEffect(() => {
-    loadPhotos();
-  }, []);
 
-  const fabOptions = [
-    {
-      icon: 'face',
-      label: 'Record Skin',
-      onPress: () => navigation.navigate('DailySkinRecord' as never),
-    },
-    {
-      icon: 'local-hospital',
-      label: 'Record Treatment',
-      onPress: () => navigation.navigate('MedicalBeautyRecord' as never),
-    },
-    {
-      icon: 'shopping-bag',
-      label: 'Record Product',
-      onPress: () => navigation.navigate('ProductRecord' as never),
-    },
-  ];
-
-  const getMarkedDates = () => {
-    const marked: any = {};
-    
-    // Add record dots
-    records.forEach(record => {
-      const dateStr = format(new Date(record.date), 'yyyy-MM-dd');
-      if (!marked[dateStr]) {
-        marked[dateStr] = { dots: [] };
-      }
-      
-      const color = record.type === 'daily' ? '#4169E1' : 
-                    record.type === 'medical' ? '#DC143C' : '#FFD700';
-      
-      marked[dateStr].dots.push({ color });
-    });
-    
-    // Add photo indicators
-    Array.from(photos.values()).forEach(photo => {
-      const dateStr = format(new Date(photo.takenAt), 'yyyy-MM-dd');
-      if (!marked[dateStr]) {
-        marked[dateStr] = { dots: [] };
-      }
-      
-      // Add camera icon for photos
-      marked[dateStr].dots.push({ color: '#4CAF50' });
-    });
-    
-    const todayStr = format(new Date(), 'yyyy-MM-dd');
-    marked[todayStr] = {
-      ...marked[todayStr],
-      selected: true,
-      selectedColor: '#FF6B6B',
-    };
-    
-    return marked;
+  const handleSkinScan = () => {
+    navigation.navigate('PhotoCapture' as never);
   };
 
-  const renderSelectedDateRecords = () => {
-    const dateRecords = getRecordsByDate(selectedDate);
-    const datePhotos = getPhotosByDate(selectedDate);
-    
-    if (dateRecords.length === 0 && datePhotos.length === 0) {
-      return (
-        <View style={styles.emptyState}>
-          <Text style={styles.emptyStateText}>No records for this day</Text>
-        </View>
-      );
-    }
-    
-    return (
-      <ScrollView style={styles.recordsList}>
-        {/* Display photos */}
-        {datePhotos.length > 0 && (
-          <View style={styles.photosSection}>
-            <View style={styles.photoHeader}>
-              <Icon name="camera-alt" size={20} color="#4CAF50" />
-              <Text style={styles.photoTitle}>Today's Photos</Text>
-            </View>
-            <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-              {datePhotos.map((photo) => (
-                <TouchableOpacity
-                  key={photo.id}
-                  onPress={() => {
-                    setSelectedPhoto(photo);
-                    setShowPhotoModal(true);
-                  }}
-                >
-                  <View style={styles.photoContainer}>
-                    <Image
-                      source={{ uri: photo.paths?.thumbnail || photo.uri }}
-                      style={styles.photoThumbnail}
-                    />
-                    <View style={[
-                      styles.lightQualityBadge,
-                      { backgroundColor: 
-                        photo.lightQuality === 'excellent' ? '#4CAF50' :
-                        photo.lightQuality === 'good' ? '#FFC107' : '#F44336'
-                      }
-                    ]}>
-                      <Icon name="wb-sunny" size={12} color="#fff" />
-                    </View>
-                  </View>
-                </TouchableOpacity>
-              ))}
-            </ScrollView>
-          </View>
-        )}
-        
-        {/* Display records */}
-        {dateRecords.map((record, index) => (
-          <View key={index} style={styles.recordCard}>
-            <View style={styles.recordHeader}>
-              <Text style={styles.recordType}>
-                {record.type === 'daily' ? 'Skin Record' :
-                 record.type === 'medical' ? 'Treatment Record' : 'Product Record'}
-              </Text>
-              <Text style={styles.recordTime}>
-                {format(new Date(record.date), 'HH:mm')}
-              </Text>
-            </View>
-          </View>
-        ))}
-      </ScrollView>
-    );
+  const handleTreatment = () => {
+    navigation.navigate('Treatment' as never);
+  };
+
+  const handleProduct = () => {
+    navigation.navigate('Product' as never);
+  };
+
+  const handleMyProducts = () => {
+    navigation.navigate('Product' as never);
+  };
+
+  const handleIngredientSearch = () => {
+    navigation.navigate('AIIngredientSearch' as never);
   };
 
   return (
     <SafeAreaView style={styles.container}>
-      <ScrollView>
+      <ScrollView showsVerticalScrollIndicator={false}>
+        {/* Header */}
         <View style={styles.header}>
-          <Text style={styles.welcomeText}>AI Learning Progress</Text>
-          <Text style={styles.subText}>
-            Keep recording to help AI understand your skin better
-          </Text>
+          <Text style={styles.headerTitle}>Home</Text>
+          <TouchableOpacity style={styles.profileButton}>
+            <Icon name="person" size={24} color={theme.colors.text.primary} />
+          </TouchableOpacity>
         </View>
-        
-        <Calendar
-          markedDates={getMarkedDates()}
-          markingType={'multi-dot'}
-          onDayPress={(day: any) => setSelectedDate(new Date(day.dateString))}
-          theme={{
-            selectedDayBackgroundColor: '#FF6B6B',
-            todayTextColor: '#FF6B6B',
-            arrowColor: '#FF6B6B',
-          }}
-        />
-        
-        <View style={styles.recordsSection}>
-          <Text style={styles.sectionTitle}>
-            Records for {format(selectedDate, 'MMM dd')}
-          </Text>
-          {renderSelectedDateRecords()}
+
+        {/* Streak Section */}
+        <View style={styles.streakSection}>
+          <View style={styles.streakContent}>
+            <View>
+              <Text style={styles.streakTitle}>{streakDays} Days Streak!</Text>
+              <Text style={styles.streakSubtitle}>So proud of your consistency, Ziqi!</Text>
+            </View>
+            <CircularProgress
+              size={60}
+              progress={70}
+              gradient={theme.colors.gradient.streak}
+            />
+          </View>
+        </View>
+
+        {/* Record Section */}
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Record</Text>
+          
+          {/* Large Skin Scan Card */}
+          <TouchableOpacity style={styles.skinScanCard} onPress={handleSkinScan}>
+            <Image 
+              source={require('../../../pictures/SkinScan.png')} 
+              style={styles.workingImage}
+            />
+            <View style={styles.textOverlay}>
+              <Text style={styles.cardTitle}>Skin Scan</Text>
+              <Text style={styles.cardSubtitle}>What's your today's skin condition</Text>
+            </View>
+          </TouchableOpacity>
+          
+          {/* Treatment and Product Cards Row */}
+          <View style={styles.recordRow}>
+            <Card
+              title="Treatment"
+              subtitle={"Track your\nbeauty treatment"}
+              backgroundColor={theme.colors.secondary.coral}
+              onPress={handleTreatment}
+              style={styles.halfCard}
+              size="medium"
+              titleStyle={styles.cardTitleStyle}
+              subtitleStyle={styles.cardSubtitleStyle}
+              icon={<View style={styles.dotGrid}>
+                {[...Array(9)].map((_, i) => (
+                  <View key={i} style={styles.gridDot} />
+                ))}
+              </View>}
+            />
+            <Card
+              title="Product"
+              subtitle={"Analysis with\nyour own feedback"}
+              backgroundColor={theme.colors.secondary.purple}
+              onPress={handleProduct}
+              style={styles.halfCard}
+              size="medium"
+              titleStyle={styles.cardTitleStyle}
+              subtitleStyle={styles.cardSubtitleStyle}
+              icon={<Icon name="science" size={32} color="white" />}
+            />
+          </View>
+        </View>
+
+        {/* Explore Section */}
+        <View style={styles.section}>
+          <View style={styles.sectionHeader}>
+            <Text style={styles.sectionTitle}>Explore</Text>
+            <Icon name="explore" size={20} color={theme.colors.text.secondary} />
+          </View>
+          
+          {/* My Products Card */}
+          <TouchableOpacity style={styles.exploreItem} onPress={handleMyProducts}>
+            <View style={styles.exploreHeader}>
+              <View style={styles.exploreIconContainer}>
+                <Icon name="grid-view" size={20} color={theme.colors.text.primary} />
+              </View>
+              <Text style={styles.exploreTitle}>My Products</Text>
+            </View>
+            <View style={styles.productPreview}>
+              <View style={styles.productStack}>
+                <Image
+                  source={require('../../../pictures/MyProducts1.png')}
+                  style={[styles.productStackImage, styles.productImage1]}
+                />
+                <Image
+                  source={require('../../../pictures/MyProducts2.jpg')}
+                  style={[styles.productStackImage, styles.productImage2]}
+                />
+              </View>
+            </View>
+          </TouchableOpacity>
+          
+          {/* AI Ingredient Search Card */}
+          <TouchableOpacity style={styles.exploreItem} onPress={handleIngredientSearch}>
+            <View style={styles.exploreHeader}>
+              <View style={styles.exploreIconContainer}>
+                <Icon name="search" size={20} color={theme.colors.text.primary} />
+              </View>
+              <Text style={styles.exploreTitle}>AI Ingredient Search</Text>
+            </View>
+            <View style={styles.ingredientPreview}>
+              <Image
+                source={require('../../../pictures/AIIngredientSearch1.jpg')}
+                style={[styles.ingredientImage, styles.ingredientImage1]}
+              />
+              <Image
+                source={require('../../../pictures/AIIngredientSearch2.jpg')}
+                style={[styles.ingredientImage, styles.ingredientImage2]}
+              />
+            </View>
+          </TouchableOpacity>
         </View>
       </ScrollView>
-      
-      <FloatingActionButton options={fabOptions} />
-      
-      {/* Photo Modal */}
-      <Modal
-        visible={showPhotoModal}
-        transparent={true}
-        animationType="fade"
-        onRequestClose={() => setShowPhotoModal(false)}
-      >
-        <TouchableOpacity 
-          style={styles.modalOverlay}
-          activeOpacity={1}
-          onPress={() => setShowPhotoModal(false)}
-        >
-          <View style={styles.modalContent}>
-            {selectedPhoto && (
-              <>
-                <Image
-                  source={{ uri: selectedPhoto.paths?.compressed || selectedPhoto.uri }}
-                  style={styles.modalImage}
-                  resizeMode="contain"
-                />
-                <View style={styles.modalInfo}>
-                  <View style={styles.modalInfoRow}>
-                    <Icon name="wb-sunny" size={20} color={
-                      selectedPhoto.lightQuality === 'excellent' ? '#4CAF50' :
-                      selectedPhoto.lightQuality === 'good' ? '#FFC107' : '#F44336'
-                    } />
-                    <Text style={styles.modalInfoText}>
-                      Light Quality: {
-                        selectedPhoto.lightQuality === 'excellent' ? 'Perfect' :
-                        selectedPhoto.lightQuality === 'good' ? 'Good' : 'Poor'
-                      }
-                    </Text>
-                  </View>
-                  <View style={styles.modalInfoRow}>
-                    <Icon name="access-time" size={20} color="#666" />
-                    <Text style={styles.modalInfoText}>
-                      {format(new Date(selectedPhoto.takenAt), 'HH:mm')}
-                    </Text>
-                  </View>
-                  {selectedPhoto.analysisId && (
-                    <TouchableOpacity 
-                      style={styles.viewAnalysisButton}
-                      onPress={() => {
-                        setShowPhotoModal(false);
-                        navigation.navigate('AIInsights' as never);
-                      }}
-                    >
-                      <Text style={styles.viewAnalysisText}>View AI Analysis</Text>
-                      <Icon name="chevron-right" size={20} color="#FF6B6B" />
-                    </TouchableOpacity>
-                  )}
-                </View>
-              </>
-            )}
-          </View>
-        </TouchableOpacity>
-      </Modal>
     </SafeAreaView>
   );
 };
@@ -249,142 +170,258 @@ export const DashboardScreen = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f8f9fa',
+    backgroundColor: theme.colors.background.secondary,
   },
   header: {
-    backgroundColor: '#fff',
-    padding: 20,
-    marginBottom: 10,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: theme.layout.screenPadding,
+    paddingTop: theme.spacing.lg,
+    paddingBottom: theme.spacing.md,
+    backgroundColor: theme.colors.background.primary,
   },
-  welcomeText: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: '#2c3e50',
+  headerTitle: {
+    ...theme.typography.styles.largeTitle,
+    color: theme.colors.text.primary,
   },
-  subText: {
-    fontSize: 16,
-    color: '#7f8c8d',
-    marginTop: 5,
+  profileButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: theme.colors.background.secondary,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
-  recordsSection: {
-    backgroundColor: '#fff',
-    marginTop: 10,
-    padding: 20,
-    minHeight: 200,
+  streakSection: {
+    backgroundColor: theme.colors.background.primary,
+    paddingHorizontal: theme.layout.screenPadding,
+    paddingVertical: theme.spacing.lg,
+    marginBottom: theme.spacing.sm,
+  },
+  streakContent: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  streakTitle: {
+    ...theme.typography.styles.title2,
+    color: theme.colors.text.primary,
+    marginBottom: theme.spacing.xs,
+  },
+  streakSubtitle: {
+    ...theme.typography.styles.subheadline,
+    color: theme.colors.text.secondary,
+  },
+  section: {
+    backgroundColor: theme.colors.background.primary,
+    paddingHorizontal: theme.layout.screenPadding,
+    paddingVertical: theme.spacing.xl,
+    marginBottom: theme.spacing.sm,
+  },
+  sectionHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: theme.spacing.lg,
   },
   sectionTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: '#2c3e50',
-    marginBottom: 15,
+    ...theme.typography.styles.title3,
+    color: theme.colors.text.primary,
+    marginBottom: theme.spacing.lg,
   },
-  recordsList: {
-    maxHeight: 300,
-  },
-  recordCard: {
-    backgroundColor: '#f8f9fa',
-    padding: 15,
-    borderRadius: 10,
-    marginBottom: 10,
-  },
-  recordHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  recordType: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#2c3e50',
-  },
-  recordTime: {
-    fontSize: 14,
-    color: '#7f8c8d',
-  },
-  emptyState: {
-    alignItems: 'center',
-    paddingVertical: 40,
-  },
-  emptyStateText: {
-    fontSize: 16,
-    color: '#95a5a6',
-  },
-  photosSection: {
-    marginBottom: 20,
-  },
-  photoHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 10,
-  },
-  photoTitle: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#2c3e50',
-    marginLeft: 8,
-  },
-  photoContainer: {
-    marginRight: 10,
+  skinScanCard: {
+    height: 180,
+    marginBottom: theme.spacing.lg,
+    borderRadius: theme.borderRadius.card,
+    overflow: 'hidden',
     position: 'relative',
   },
-  photoThumbnail: {
-    width: 80,
-    height: 80,
-    borderRadius: 10,
-    backgroundColor: '#f0f0f0',
-  },
-  lightQualityBadge: {
+  testImage: {
     position: 'absolute',
-    top: 5,
-    right: 5,
+    top: 0,
+    left: '40%', // Start image from where text overlay ends
+    right: 0,
+    bottom: 0,
+    resizeMode: 'cover',
+  },
+  fullTestImage: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    resizeMode: 'cover',
+    zIndex: 1,
+    opacity: 1, // Ensure full opacity
+  },
+  testOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    width: '50%', // Blue area takes 50%, image takes 50%
+    bottom: 0,
+    backgroundColor: 'rgba(91, 200, 248, 0.95)',
+    justifyContent: 'center',
+    paddingLeft: theme.spacing.lg,
+    zIndex: 2,
+  },
+  testText: {
+    ...theme.typography.styles.title2,
+    color: theme.colors.text.inverse,
+    fontWeight: theme.typography.fontWeight.bold,
+  },
+  testSubtext: {
+    ...theme.typography.styles.callout,
+    color: theme.colors.text.inverse,
+    opacity: 0.9,
+    marginTop: theme.spacing.xs,
+  },
+  workingImage: {
+    width: '100%',
+    height: 180,
+    resizeMode: 'cover',
+  },
+  textOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    width: '40%',
+    height: '100%',
+    backgroundColor: 'rgba(91, 200, 248, 0.9)',
+    justifyContent: 'center',
+    paddingLeft: theme.spacing.md,
+    borderTopLeftRadius: theme.borderRadius.card,
+    borderBottomLeftRadius: theme.borderRadius.card,
+  },
+  cardTitle: {
+    ...theme.typography.styles.title2,
+    color: theme.colors.text.inverse,
+    fontWeight: theme.typography.fontWeight.bold,
+    marginBottom: theme.spacing.xs,
+    fontSize: 20,
+  },
+  cardSubtitle: {
+    ...theme.typography.styles.callout,
+    color: theme.colors.text.inverse,
+    opacity: 0.9,
+    fontSize: 13,
+    lineHeight: 16,
+  },
+  recordRow: {
+    flexDirection: 'row',
+    gap: theme.spacing.md,
+  },
+  halfCard: {
+    flex: 1,
+    height: 140,
+  },
+  dotPattern: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    width: 24,
+    height: 16,
+    justifyContent: 'space-between',
+  },
+  dot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: theme.colors.text.inverse,
+    marginBottom: 2,
+  },
+  dotGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    width: 29,
+    height: 29,
+    justifyContent: 'space-between',
+    alignContent: 'space-between',
+  },
+  gridDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: 'white',
+    marginBottom: 3.5,
+    marginRight: 3.5,
+  },
+  cardTitleStyle: {
+    fontSize: 22,
+    fontWeight: '700',
+    marginBottom: 4,
+  },
+  cardSubtitleStyle: {
+    lineHeight: 18,
+    fontSize: 13,
+    opacity: 0.9,
+  },
+  exploreItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: theme.colors.background.secondary,
+    borderRadius: theme.borderRadius.md,
+    padding: theme.spacing.lg,
+    marginBottom: theme.spacing.md,
+  },
+  exploreHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flex: 1,
+  },
+  exploreIconContainer: {
     width: 24,
     height: 24,
-    borderRadius: 12,
     justifyContent: 'center',
     alignItems: 'center',
+    marginRight: theme.spacing.md,
   },
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.9)',
-    justifyContent: 'center',
-    alignItems: 'center',
+  exploreTitle: {
+    ...theme.typography.styles.callout,
+    color: theme.colors.text.primary,
+    fontWeight: theme.typography.fontWeight.medium,
   },
-  modalContent: {
-    width: '90%',
-    backgroundColor: '#fff',
-    borderRadius: 20,
-    overflow: 'hidden',
+  productPreview: {
+    marginLeft: 'auto',
   },
-  modalImage: {
-    width: '100%',
-    height: 400,
-    backgroundColor: '#f0f0f0',
+  productStack: {
+    position: 'relative',
+    width: 60,
+    height: 40,
   },
-  modalInfo: {
-    padding: 20,
+  productStackImage: {
+    position: 'absolute',
+    width: 40,
+    height: 40,
+    borderRadius: 8,
+    resizeMode: 'cover',
   },
-  modalInfoRow: {
+  productImage1: {
+    top: 0,
+    left: 0,
+    zIndex: 1,
+  },
+  productImage2: {
+    top: 0,
+    right: 0,
+    zIndex: 2,
+  },
+  ingredientPreview: {
+    marginLeft: 'auto',
     flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 15,
+    gap: -10,
   },
-  modalInfoText: {
-    fontSize: 16,
-    color: '#2c3e50',
-    marginLeft: 10,
+  ingredientImage: {
+    width: 50,
+    height: 40,
+    borderRadius: 8,
+    resizeMode: 'cover',
   },
-  viewAnalysisButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    backgroundColor: '#FFF5F5',
-    padding: 15,
-    borderRadius: 10,
-    marginTop: 10,
+  ingredientImage1: {
+    zIndex: 1,
   },
-  viewAnalysisText: {
-    fontSize: 16,
-    color: '#FF6B6B',
-    fontWeight: '600',
+  ingredientImage2: {
+    marginLeft: -10,
+    zIndex: 2,
   },
 });

@@ -1,6 +1,5 @@
 import React from 'react';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
-import Icon from 'react-native-vector-icons/MaterialIcons';
 import { DashboardScreen } from '../screens/main/DashboardScreen';
 import { AIInsightsScreen } from '../screens/main/AIInsightsScreen';
 import { CompareScreen } from '../screens/main/CompareScreen';

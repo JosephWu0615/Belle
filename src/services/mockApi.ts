@@ -1,4 +1,4 @@
-import { AIAnalysisReport, Photo } from '../types';
+import { AIAnalysisReport, Photo, Treatment } from '../types';
 
 // Mock delay to simulate network requests
 const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
@@ -152,7 +152,7 @@ export const mockComparePhotos = async (photoIds: string[]): Promise<{
 };
 
 // Get skin care recommendations
-export const mockGetRecommendations = async (analysisId: string): Promise<{
+export const mockGetRecommendations = async (_analysisId: string): Promise<{
   products: {
     category: string;
     name: string;
@@ -160,6 +160,7 @@ export const mockGetRecommendations = async (analysisId: string): Promise<{
     keyIngredients: string[];
     usage: string;
   }[];
+  treatments: Treatment[];
   routines: {
     time: 'morning' | 'evening';
     steps: {
@@ -195,6 +196,73 @@ export const mockGetRecommendations = async (analysisId: string): Promise<{
         keyIngredients: ['Ceramides', 'Squalane', 'Vitamin E'],
         usage: 'After serum, apply to entire face and gently massage until absorbed',
       },
+    ],
+    treatments: [
+      {
+        id: 'treatment-1',
+        name: 'HydraFacial',
+        description: 'Deep cleansing, exfoliation, extraction, and hydration treatment for instantly improved skin clarity and tone.',
+        benefits: [
+          'Deep cleansing and hydration',
+          'Reduces fine lines and wrinkles',
+          'Improves skin texture and tone',
+          'Minimizes pore appearance'
+        ],
+        duration: '45-60 minutes',
+        targetConcerns: ['Dryness', 'Fine lines', 'Dull skin', 'Clogged pores']
+      },
+      {
+        id: 'treatment-2',
+        name: 'Chemical Peel',
+        description: 'Chemical solution that exfoliates skin and removes damaged outer layers, revealing fresher skin beneath.',
+        benefits: [
+          'Reduces hyperpigmentation',
+          'Improves acne scars',
+          'Smooths fine lines',
+          'Evens out skin tone'
+        ],
+        duration: '30-45 minutes',
+        targetConcerns: ['Pigmentation', 'Acne scars', 'Uneven texture', 'Sun damage']
+      },
+      {
+        id: 'treatment-3',
+        name: 'Oxygen Facial',
+        description: 'Infuses oxygen, vitamins, and antioxidants into the skin for instant hydration and rejuvenation.',
+        benefits: [
+          'Instant hydration and plumping',
+          'Boosts collagen production',
+          'Detoxifies the skin',
+          'Reduces inflammation'
+        ],
+        duration: '60-75 minutes',
+        targetConcerns: ['Dehydration', 'Dull complexion', 'Fine lines', 'Sensitive skin']
+      },
+      {
+        id: 'treatment-4',
+        name: 'Microneedling',
+        description: 'Creates tiny punctures in the skin to trigger collagen production, improving texture and reducing scars.',
+        benefits: [
+          'Reduces acne scars',
+          'Minimizes large pores',
+          'Improves skin texture',
+          'Enhances product absorption'
+        ],
+        duration: '60-90 minutes',
+        targetConcerns: ['Acne scars', 'Large pores', 'Wrinkles', 'Uneven texture']
+      },
+      {
+        id: 'treatment-5',
+        name: 'LED Light Therapy',
+        description: 'Non-invasive treatment using different wavelengths of light to target specific skin concerns.',
+        benefits: [
+          'Reduces inflammation',
+          'Kills acne-causing bacteria',
+          'Stimulates collagen production',
+          'Accelerates wound healing'
+        ],
+        duration: '20-30 minutes',
+        targetConcerns: ['Acne', 'Redness', 'Inflammation', 'Signs of aging']
+      }
     ],
     routines: [
       {
@@ -287,7 +355,7 @@ export const mockTrackActivity = async (activity: {
 };
 
 // Get achievement progress
-export const mockGetAchievementProgress = async (userId: string): Promise<{
+export const mockGetAchievementProgress = async (_userId: string): Promise<{
   streak: number;
   totalPhotos: number;
   improvementScore: number;

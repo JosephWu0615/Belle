@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   View,
   Text,
@@ -35,7 +35,7 @@ export const CompareScreen = () => {
     if (recentPhotos.length === 2) {
       setSelectedPhotos(recentPhotos);
     }
-  }, []);
+  }, [getRecentPhotos]);
 
   const handlePhotoSelect = (index: number) => {
     setSelectingIndex(index);
@@ -49,7 +49,7 @@ export const CompareScreen = () => {
     setShowPhotoSelector(false);
   };
 
-  const comparePhotos = async () => {
+  const comparePhotos = useCallback(async () => {
     if (selectedPhotos.length < 2) return;
     
     setIsLoading(true);
@@ -62,13 +62,13 @@ export const CompareScreen = () => {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [selectedPhotos]);
 
   useEffect(() => {
     if (selectedPhotos.length === 2) {
       comparePhotos();
     }
-  }, [selectedPhotos]);
+  }, [selectedPhotos, comparePhotos]);
 
   const renderPhotoSelector = () => {
     const photoArray = Array.from(photos.values()).sort(
